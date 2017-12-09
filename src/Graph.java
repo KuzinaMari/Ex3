@@ -51,7 +51,7 @@ public class Graph {
         SampleGraph g = new SampleGraph();
         g.printEdges();
         SalesmanTask task = new SalesmanTask( g, g.n1 );
-        task.iterations( 100 );
+        task.iterations( 30 );
         g.printEdges();
     }
     public static class Node{
@@ -74,7 +74,7 @@ public class Graph {
     public static class Edge{
         private ArrayList<Node> myNodes = new ArrayList<Node>();
         private double myLength;
-        private double myWeight = 0;
+        private double myWeight = 0.01;
         public double myWeightForAnt;
         public double myStartProb;
         public double myEndProb;
@@ -117,6 +117,8 @@ public class Graph {
         }
     }
     public static class Ant{
+        private static double ALPHA = 1.0;
+        private static double BETA = 3.0;
         private ArrayList<Node> myNodes = new ArrayList<Node>();
         private double myValue = 0.2;
         private Graph myGraph;
@@ -136,7 +138,9 @@ public class Graph {
                 if( myNodes.contains( opposite ) ){
                     continue;
                 }
-                edge.myWeightForAnt = 1 / edge.getLength() + edge.myWeight;
+                //edge.myWeightForAnt = 1 / edge.getLength() + edge.myWeight;
+                edge.myWeightForAnt = Math.pow( edge.myWeight, ALPHA )
+                        / Math.pow( edge.getLength(), BETA );
                 sum += edge.myWeightForAnt;
             }
             double lastEnd = 0;
@@ -172,6 +176,14 @@ public class Graph {
             return true;
         }
         public void reset( Node start ){
+            if( !myNodes.isEmpty() ){
+                StringBuilder sb = new StringBuilder();
+                for( Node n : myNodes ){
+                    sb.append( n.myNumber );
+                    sb.append( " " );
+                }
+                log( sb.toString() );
+            }
             myNode = start;
             myNodes.clear();
         }
