@@ -23,6 +23,15 @@ public class TSP {
         };
         Matrix m = new Matrix( data );
         m.print();
+//        m.process( new Matrix.Iterator(){ public double process( int n1, int n2, double value ){
+//            return value + n1 + n2;
+//        } } );
+        m.process( ( int n1, int n2, double value ) -> {
+            return value + n1 + n2;
+        } );
+        m.print();
+        log( "" );
+        TSP tsp = new TSP( m );
     }
 
     public static class Matrix{
@@ -60,22 +69,29 @@ public class TSP {
         }
     }
 
-    private double[][] myWeigths;
+    private Matrix myWeigths;
     private int myVertices;
-    private double[][] myPheromones;
+    private Matrix myPheromones;
+    private static double EVAPORATION = 0.1;
 
-    public TSP( double[][] weights ){
+    public TSP( Matrix weights ){
         myWeigths = weights;
-        myVertices = weights.length;
-
+        myVertices = weights.size();
+        myPheromones = new Matrix( new double[ myVertices ][ myVertices ] );
+        initPheromones();
+        myPheromones.print();
+        for( int i =0; i < 10; i++ ){
+            iteration();
+            myPheromones.print();
+        }
     }
 
     private void initPheromones(){
-        for( int i =0; i< myVertices; i++ ){
-            for( int j =0; j< myVertices; j++ ){
-                myPheromones[ i ][ j ] = 1.0 / myVertices; //небольшое положительное число
-            }
-        }
+        myPheromones.process( ( int n1, int n2, double value ) -> 1.0 / myVertices );
+    }
+
+    public void iteration(){
+        myPheromones.process( ( int n1, int n2, double value ) -> value * ( 1 - EVAPORATION ) );
     }
 
 }
