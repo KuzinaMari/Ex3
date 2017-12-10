@@ -67,6 +67,13 @@ public class TSP {
         public interface Iterator{
             public double process( int node1, int node2, double value );
         }
+        public double get( int node1, int node2 ){
+            return myValues[ node1 ][ node2 ];
+        }
+        public void set( int node1, int node2, double value ){
+            myValues[ node1 ][ node2 ] = value;
+            myValues[ node2 ][ node1 ] = value;
+        }
     }
 
     private Matrix myWeigths;
@@ -86,6 +93,18 @@ public class TSP {
         }
     }
 
+    public Matrix pheromones(){
+        return myPheromones;
+    }
+
+    public Matrix weights(){
+        return myWeigths;
+    }
+
+    public int count(){
+        return myVertices;
+    }
+
     private void initPheromones(){
         myPheromones.process( ( int n1, int n2, double value ) -> 1.0 / myVertices );
     }
@@ -94,4 +113,91 @@ public class TSP {
         myPheromones.process( ( int n1, int n2, double value ) -> value * ( 1 - EVAPORATION ) );
     }
 
+    private static class It2 implements Matrix.Iterator{
+        public double sum = 0;
+        public double process( int n1, int n2, double value ){
+            sum += value;
+            return value;
+        }
+    }
+    public double optimalWayWeight(){
+        It2 mi = new It2();
+        myWeigths.process( mi );
+        return mi.sum / count();
+    }
+
+    public static class Ant{
+        private static double ALPHA = 1;
+        private static double BETA = 3;
+        private List<Integer> myWay = new ArrayList<Integer>();
+        private TSP myTSP;
+        public Ant( TSP tsp, int start ){
+            myWay.add( start );
+            myTSP = tsp;
+        }
+        void add( int node ){
+            myWay.add( node );
+        }
+        public int current(){
+            return myWay.get( myWay.size() - 1 );
+        }
+        public double weight( int node ){
+            double pheromone = myTSP.pheromones().get( current(), node );
+            double weight = myTSP.weights().get( current(), node );
+            return Math.pow( pheromone, ALPHA ) / Math.pow( weight, BETA );
+        }
+        public double sumWeights(){
+            double sum = 0;
+            for( int i =0; i < myTSP.count(); i++ ){
+                if( myWay.contains( i ) ) continue;
+                sum += weight( i );
+            }
+            return sum;
+        }
+        public double probability( int node ){
+            return weight( node ) / sumWeights();
+        }
+        public double wayWeight(){
+            double weight = 0;
+            int last = -1;
+            for( int i : myWay ){
+                if( last >= 0 ){
+                    weight += myTSP.weights().get( last, i );
+                }
+                last = i;
+            }
+            return weight;
+        }
+        private static class Node{
+            public int number;
+            public double start;
+            public double finish;
+            public double length;
+        }
+        public void move(){
+            List<Node> possible = new ArrayList<Node>();
+            Node last = null;
+            for( int i =0; i < myTSP.count(); i++ ){
+                if( myWay.contains( i ) ) continue;
+                Node n = new Node();
+                n.number = i;
+                n.length = probability( i );
+                n.start = last == null ? 0 : last.finish;
+                n.finish = n.start + n.length;
+                possible.add( n );
+                last = n;
+            }
+            double random = Math.random();
+            Node path = null;
+            for( Node n : possible ){
+                if( random >= n.start ){
+                    path = n;
+                    break;
+                }
+            }
+            double pheromone = myTSP.pheromones().get( current(), path.number );
+            myTSP.pheromones().set( current(), path.number, pheromone + wayWeight() / myTSP.optimalWayWeight() );
+            myWay.add( path.number );
+        }
+    }
 }
